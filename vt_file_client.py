@@ -56,7 +56,7 @@ def get_file_sha256(file_path: str) -> str:
     return digest.hexdigest()
 
 
-def check_file_by_hash(file_path: str, headers: dict) -> dict:
+def check_file_by_hash(file_path: str) -> dict:
     hash_id = get_file_sha256(file_path)
     url = VT_API_URL + "files/" + hash_id
     response = safe_vt_request("GET", url, headers=headers)
@@ -97,7 +97,7 @@ def check_file_by_hash(file_path: str, headers: dict) -> dict:
         return summary
     elif response.status_code == 404:
         print("File not found in VirusTotal. Uploading the file for analysis.")
-        return upload_file_to_virustotal(file_path, headers)
+        return upload_file_to_virustotal(file_path)
     else:
         summary = {
             "status": "error",
@@ -114,7 +114,7 @@ def check_file_by_hash(file_path: str, headers: dict) -> dict:
         return summary
 
 
-def upload_file_to_virustotal(file_path: str, headers: dict) -> dict:
+def upload_file_to_virustotal(file_path: str) -> dict:
     file_size_mb = os.path.getsize(file_path) / 1024 / 1024
     print(f"{file_size_mb:.2f} MB")
 
@@ -128,7 +128,7 @@ def upload_file_to_virustotal(file_path: str, headers: dict) -> dict:
                 analysis_id = data["data"]["id"]
                 print(f"Analysis ID: {analysis_id}")
                 time.sleep(30)
-                return check_analysis_report(analysis_id, headers, file_path)
+                return check_analysis_report(analysis_id, file_path)
             else:
                 summary = {
                     "status": "error",
@@ -158,7 +158,7 @@ def upload_file_to_virustotal(file_path: str, headers: dict) -> dict:
                     analysis_id = data["data"]["id"]
                     print(f"Analysis ID: {analysis_id}")
                     time.sleep(30)
-                    return check_analysis_report(analysis_id, headers, file_path)
+                    return check_analysis_report(analysis_id, file_path)
                 else:
                     summary = {
                         "status": "error",
@@ -236,7 +236,7 @@ def _analysis_error(file_path: str, message: str) -> dict:
     }
 
 
-def check_analysis_report(analysis_id: str, headers: dict, file_path: str) -> dict:
+def check_analysis_report(analysis_id: str, file_path: str) -> dict:
     url = f"{VT_API_URL}analyses/{analysis_id}"
     delay = 30
     max_tries = 8

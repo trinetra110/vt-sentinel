@@ -1,5 +1,4 @@
 import logging
-import os
 
 LOG_FILE = "scan_history.log"
 
@@ -25,13 +24,16 @@ def log_scan_summary(summary: dict, logger: logging.Logger = None) -> None:
         logger = setup_logger()
 
     status = summary.get("status", "error")
-    file_name = summary.get("file_name", "Unknown File")
-    sha256 = summary.get("sha256", "N/A")
+    target_name = summary.get("target") or summary.get("file_name", "Unknown Target")
+    identifier = summary.get("sha256", "")
+    id_str = ""
+    if identifier:
+        id_str = f" | SHA256: {identifier}"
 
     if status in ["error", "timeout"]:
         err_msg = summary.get("error_message", "Unknown error")
         logger.error(
-            f"STATUS: {status.upper()} | File: {file_name} | SHA256: {sha256} | Details: {err_msg}"
+            f"STATUS: {status.upper()} | Target: {target_name}{id_str} | Details: {err_msg}"
         )
         return
 
@@ -41,7 +43,7 @@ def log_scan_summary(summary: dict, logger: logging.Logger = None) -> None:
     total = summary.get("total_engines", 0)
     flagged = summary.get("flagged_vendors", [])
 
-    log_msg = f"VERDICT: {verdict} | File: {file_name} | SHA256: {sha256} | Detections: {malicious + suspicious}/{total}"
+    log_msg = f"VERDICT: {verdict} | Target: {target_name}{id_str} | Detections: {malicious + suspicious}/{total}"
     if flagged:
         log_msg += f" | Flagged By: {', '.join(flagged)}"
 

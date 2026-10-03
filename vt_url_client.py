@@ -3,7 +3,6 @@ import os
 import sys
 import time
 import requests
-import json
 from dotenv import load_dotenv
 
 from vt_file_client import safe_vt_request

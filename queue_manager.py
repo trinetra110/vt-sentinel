@@ -4,7 +4,8 @@ import time
 import os
 import shutil
 from plyer import notification
-from vt_file_client import check_file_by_hash, headers
+from vt_file_client import check_file_by_hash
+from vt_url_client import check_url
 from logger import log_scan_summary
 
 FOLDER_PATH = os.getenv("FOLDER_PATH", ".")
@@ -24,12 +25,10 @@ _worker_lock = threading.Lock()
 def _is_file_stable(
     file_path: str, poll_interval: float = 1.0, max_wait_sec: int = 60
 ) -> bool:
-    """Waits dynamically until file size stops growing or the file is deleted."""
     start_time = time.time()
     last_size = -1
 
     while time.time() - start_time < max_wait_sec:
-        # Check on every loop iteration if file was moved or deleted by AV
         if not os.path.exists(file_path):
             return False
 
@@ -47,7 +46,6 @@ def _is_file_stable(
 
 
 def _route_file(file_path: str, verdict: str) -> None:
-    """Moves the scanned file to the appropriate directory based on its verdict."""
     if verdict == "CLEAN":
         dest_dir = CLEAN_DIR
     elif verdict in ["MALICIOUS", "SUSPICIOUS"]:
@@ -70,12 +68,11 @@ def _route_file(file_path: str, verdict: str) -> None:
 
 
 def _notify_result(summary: dict) -> None:
-    """Triggers a desktop notification ONLY for threats or errors."""
     verdict = summary.get("verdict", "ERROR")
-    file_name = summary.get("file_name", "Unknown")
+    target_name = summary.get("target") or summary.get("file_name", "Unknown")
 
     if verdict in ["MALICIOUS", "SUSPICIOUS"]:
-        title = f"ALERT: {verdict} File Detected!"
+        title = f"ALERT: {verdict} Target Detected!"
     elif verdict in ["ERROR", "TIMEOUT"]:
         title = f"Scan Issue: {verdict}"
     else:
@@ -84,7 +81,7 @@ def _notify_result(summary: dict) -> None:
     try:
         notification.notify(
             title=title,
-            message=f"File: {file_name}",
+            message=f"Target: {target_name}",
             app_name="VT Scanner",
         )
     except Exception as e:
@@ -92,39 +89,42 @@ def _notify_result(summary: dict) -> None:
 
 
 def _queue_worker() -> None:
-    """Background worker thread consuming queued file paths sequentially."""
     while True:
-        file_path = task_queue.get()
+        task_type, item = task_queue.get()
 
         try:
-            print(f"\n[Queue Manager] Picked up file: {os.path.basename(file_path)}")
-
-            if not _is_file_stable(file_path):
+            if task_type == "file":
+                file_path = item
                 print(
-                    f"[Queue Manager] File unreadable or missing (possibly deleted by AV): {file_path}"
+                    f"\n[Queue Manager] Picked up file: {os.path.basename(file_path)}"
                 )
-                continue
 
-            # Execute scan via VirusTotal API client
-            summary = check_file_by_hash(file_path, headers)
+                if not _is_file_stable(file_path):
+                    print(f"[Queue Manager] File unreadable or missing: {file_path}")
+                    continue
 
-            # Persist summary to scan_history.log
-            log_scan_summary(summary)
+                summary = check_file_by_hash(file_path)
+                log_scan_summary(summary)
+                _notify_result(summary)
+                _route_file(file_path, summary.get("verdict"))
 
-            # Notify the user of the result
-            _notify_result(summary)
+            elif task_type == "url":
+                target_url = item
+                print(f"\n[Queue Manager] Picked up URL: {target_url}")
 
-            # Route the file to Clean or Quarantine
-            _route_file(file_path, summary.get("verdict"))
+                summary = check_url(target_url)
+                log_scan_summary(summary)
+                _notify_result(summary)
 
         except Exception as e:
-            print(f"[Queue Manager] Unexpected error processing {file_path}: {e}")
+            print(
+                f"[Queue Manager] Unexpected error processing {task_type} '{item}': {e}"
+            )
         finally:
             task_queue.task_done()
 
 
 def start_queue_worker() -> None:
-    """Spawns the background worker thread if not already running."""
     global _worker_started
     with _worker_lock:
         if not _worker_started:
@@ -135,12 +135,16 @@ def start_queue_worker() -> None:
 
 
 def add_file_to_queue(file_path: str) -> None:
-    """Public interface to add a file path to the processing queue."""
     start_queue_worker()
-    task_queue.put(file_path)
-    print(f"[Queue Manager] Added to queue: {os.path.basename(file_path)}")
+    task_queue.put(("file", file_path))
+    print(f"[Queue Manager] Added file to queue: {os.path.basename(file_path)}")
+
+
+def add_url_to_queue(target_url: str) -> None:
+    start_queue_worker()
+    task_queue.put(("url", target_url))
+    print(f"[Queue Manager] Added URL to queue: {target_url}")
 
 
 def wait_for_completion() -> None:
-    """Blocks execution until all queued files have been scanned."""
     task_queue.join()
