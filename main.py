@@ -157,7 +157,7 @@ if __name__ == "__main__":
                 "[ERROR] Invalid mode for file target. Use '--mode sweep' or '--mode watch'."
             )
             sys.exit(1)
-            
+
     elif args.target == "url":
         if args.url:
             process_single_url(args.url)

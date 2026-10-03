@@ -1,0 +1,4 @@
+requests
+watchdog
+plyer
+python-dotenv

@@ -18,10 +18,8 @@ if not VT_API_KEY or VT_API_KEY.strip() in [
     )
     sys.exit(1)
 
-FOLDER_PATH = os.getenv("FOLDER_PATH")
 VT_API_URL = "https://www.virustotal.com/api/v3/"
 
-# Fallback for standalone testing; in production, queue_manager passes the exact path
 headers = {"accept": "application/json", "x-apikey": VT_API_KEY}
 _request_timestamps = []
 _rate_limiter_lock = threading.Lock()
