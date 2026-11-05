@@ -57,3 +57,5 @@ def run_setup():
     print(f"[+] Target Folder: {target_folder}")
     print(f"[+] Clean Directory: {clean_folder}")
     print(f"[+] Quarantine Directory: {quarantine_folder}\n")
+
+    return True

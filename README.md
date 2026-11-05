@@ -4,19 +4,19 @@ A modular, thread-safe Python security agent utilizing the VirusTotal v3 API. Th
 
 ## Features
 
-* **Global CLI Tool**: Run `vt-sentinel` from anywhere on your system.
-* **Interactive Setup**: Zero-touch configuration wizard to set up your API keys and folders.
-* **File Scanning**: Monitor directories in real-time or sweep existing files.
-* **URL Scanning**: Check individual links or process batch text files.
-* **Automated Routing**: Automatically moves malicious files to a Quarantine folder and safe files to a Clean folder.
-* **Rate Limiting**: Thread-safe sliding window ensures compliance with the free VirusTotal API quota (4 requests per minute).
-* **Desktop Notifications**: Native OS alerts for malicious or suspicious findings.
-* **Centralized Logging**: Comprehensive UTF-8 logging of all scan summaries stored globally.
+- **Global CLI Tool**: Run `vt-sentinel` from anywhere on your system.
+- **Interactive Setup**: Zero-touch configuration wizard to set up your API keys and folders.
+- **File Scanning**: Monitor directories in real-time or sweep existing files.
+- **URL Scanning**: Check individual links or process batch text files.
+- **Automated Routing**: Automatically moves malicious files to a Quarantine folder and safe files to a Clean folder.
+- **Rate Limiting**: Thread-safe sliding window ensures compliance with the free VirusTotal API quota (4 requests per minute).
+- **Desktop Notifications**: Native OS alerts for malicious or suspicious findings.
+- **Centralized Logging**: Comprehensive UTF-8 logging of all scan summaries stored globally.
 
 ## Prerequisites
 
-* VirusTotal API Key (Free tier)
-* *Optional:* Python 3.11+ and `pipx` (only required if not using the standalone binary)
+- VirusTotal API Key (Free tier)
+- _Optional:_ Python 3.11+ and `pipx` (only required if not using the standalone binary)
 
 ## Installation
 
@@ -28,6 +28,7 @@ You do not need Python installed for this method. Download the executable for yo
 
 **Windows:**
 Open Command Prompt or PowerShell:
+
 ```powershell
 cd Downloads
 .\vt-sentinel-windows.exe --setup
@@ -36,6 +37,7 @@ cd Downloads
 
 **Linux:**
 Open your terminal and grant execution permissions:
+
 ```bash
 cd ~/Downloads
 chmod +x vt-sentinel-linux
@@ -45,13 +47,13 @@ chmod +x vt-sentinel-linux
 
 **macOS:**
 Open your terminal and grant execution permissions:
+
 ```bash
 cd ~/Downloads
 chmod +x vt-sentinel-macos
 ./vt-sentinel-macos --setup
 ./vt-sentinel-macos --target url --url "https://example.com"
 ```
-*(Note: If macOS Gatekeeper blocks the file because it is an unrecognized developer, you can clear the quarantine flag by running: `xattr -d com.apple.quarantine vt-sentinel-macos`)*
 
 ### Option 2: Install globally via pipx (Recommended for Python users)
 
@@ -68,7 +70,8 @@ git clone https://github.com/trinetra110/vt-sentinel.git
 cd vt-sentinel
 pip install -e .
 ```
-*Developer Note:* You can configure the application using the interactive `vt-sentinel --setup` command, or manually reference the provided `.env.example` file to build your own configuration.
+
+_Developer Note:_ You can configure the application using the interactive `vt-sentinel --setup` command, or manually reference the provided `.env.example` file to build your own configuration.
 
 ## Configuration
 
@@ -78,21 +81,23 @@ VT-Sentinel features an interactive setup wizard. You no longer need to manually
 vt-sentinel --setup
 ```
 
-*Note: Your configuration and logs are safely stored in your global home directory at `~/VT-SENTINEL/`.*
+_Note: Your configuration and logs are safely stored in your global home directory at `~/VT-SENTINEL/`._
 
 ## Usage
 
-The application is controlled entirely through the unified `vt-sentinel` command. 
-*(If you downloaded the binary, replace `vt-sentinel` with your downloaded file's name, e.g., `.\vt-sentinel-windows.exe`)*
+The application is controlled entirely through the unified `vt-sentinel` command.
+_(If you downloaded the binary, replace `vt-sentinel` with your downloaded file's name, e.g., `.\vt-sentinel-windows.exe`)_
 
 ### File Targets
 
 Scan all existing unprocessed files in the target folder:
+
 ```bash
 vt-sentinel --target file --mode sweep
 ```
 
 Monitor the target folder continuously for new downloads:
+
 ```bash
 vt-sentinel --target file --mode watch
 ```
@@ -100,11 +105,13 @@ vt-sentinel --target file --mode watch
 ### URL Targets
 
 Scan a single URL:
+
 ```bash
 vt-sentinel --target url --url "https://example.com"
 ```
 
 Scan a list of URLs from a text file (one URL per line, supports `#` comments):
+
 ```bash
 vt-sentinel --target url --file "urls.txt"
 ```

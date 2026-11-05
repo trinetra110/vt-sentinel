@@ -38,9 +38,10 @@ def _is_file_stable(
 
 
 def _route_file(file_path: str, verdict: str) -> None:
-    config = load_env()
-    clean_dir = config["CLEAN_FOLDER"]
-    quarantine_dir = config["QUARANTINE_FOLDER"]
+    load_env()
+    folder = os.getenv("FOLDER_PATH", os.getcwd())
+    clean_dir = os.getenv("CLEAN_FOLDER_PATH", os.path.join(folder, "clean"))
+    quarantine_dir = os.getenv("QUARANTINE_FOLDER_PATH", os.path.join(folder, "quarantine"))
 
     os.makedirs(clean_dir, exist_ok=True)
     os.makedirs(quarantine_dir, exist_ok=True)
