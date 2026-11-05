@@ -1,18 +1,18 @@
-import os
-import time
 import argparse
+import os
 import sys
-
-from watchdog.observers import Observer
+import time
 from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
+from config import run_setup
 from queue_manager import (
+    CLEAN_DIR,
+    FOLDER_PATH,
+    QUARANTINE_DIR,
     add_file_to_queue,
     add_url_to_queue,
     wait_for_completion,
-    FOLDER_PATH,
-    CLEAN_DIR,
-    QUARANTINE_DIR,
 )
 
 IGNORED_EXTS = {".tmp", ".crdownload", ".part"}
@@ -20,7 +20,6 @@ IGNORED_DIRS = {os.path.abspath(CLEAN_DIR), os.path.abspath(QUARANTINE_DIR)}
 
 
 def is_valid_target(file_path: str) -> bool:
-    """Determines if a filesystem item should be scanned."""
     abs_path = os.path.abspath(file_path)
 
     for ignored_dir in IGNORED_DIRS:
@@ -108,9 +107,15 @@ def process_url_file(file_path: str):
     print("[INFO] Batch URL scan completed.")
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description="VirusTotal Automated Malware & Threat Scanner (Files & URLs)"
+    )
+
+    parser.add_argument(
+        "--setup",
+        action="store_true",
+        help="Run interactive setup to configure API key and default target folder.",
     )
 
     parser.add_argument(
@@ -143,6 +148,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    if args.setup:
+        run_setup()
+        sys.exit(0)
+
     if args.target == "file":
         if not FOLDER_PATH or not os.path.exists(FOLDER_PATH):
             print(f"[ERROR] Target folder path does not exist: {FOLDER_PATH}")
@@ -152,11 +161,6 @@ if __name__ == "__main__":
             run_file_sweep()
         elif args.mode == "watch":
             run_file_watchdog()
-        else:
-            print(
-                "[ERROR] Invalid mode for file target. Use '--mode sweep' or '--mode watch'."
-            )
-            sys.exit(1)
 
     elif args.target == "url":
         if args.url:
@@ -165,6 +169,10 @@ if __name__ == "__main__":
             process_url_file(args.file)
         else:
             print(
-                "[ERROR] For --target url, you must provide either '--url <URL>' or '--file <path_to_txt_file>'."
+                "[ERROR] For --target url, provide either --url <URL> or --file <path_to_txt_file>."
             )
             sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

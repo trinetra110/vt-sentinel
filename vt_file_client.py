@@ -1,26 +1,25 @@
 import hashlib
-import requests
 import os
-import time
-import threading
 import sys
-from dotenv import load_dotenv
+import threading
+import time
+import requests
+from config import load_env
 
-load_dotenv()
+load_env()
 
 VT_API_KEY = os.getenv("VT_API_KEY")
-if not VT_API_KEY or VT_API_KEY.strip() in [
-    "",
-    "your_api_key",
-]:
-    print(
-        "[CRITICAL] Invalid or missing VT_API_KEY in .env file. Please configure a valid key."
-    )
-    sys.exit(1)
+if not VT_API_KEY or VT_API_KEY.strip() in ["", "your_api_key"]:
+    if "--setup" not in sys.argv:
+        print(
+            "[CRITICAL] Missing VT_API_KEY. Run 'vt-sentinel --setup' or configure ~/.vt-sentinel.env"
+        )
+        sys.exit(1)
+    VT_API_KEY = ""
 
 VT_API_URL = "https://www.virustotal.com/api/v3/"
-
 headers = {"accept": "application/json", "x-apikey": VT_API_KEY}
+
 _request_timestamps = []
 _rate_limiter_lock = threading.Lock()
 MAX_REQUESTS_PER_MINUTE = 4
@@ -94,10 +93,10 @@ def check_file_by_hash(file_path: str) -> dict:
 
         return summary
     elif response.status_code == 404:
-        print("File not found in VirusTotal. Uploading the file for analysis.")
+        print("[VT File Client] Hash not found. Uploading file for scan...")
         return upload_file_to_virustotal(file_path)
     else:
-        summary = {
+        return {
             "status": "error",
             "verdict": "ERROR",
             "sha256": hash_id,
@@ -109,12 +108,11 @@ def check_file_by_hash(file_path: str) -> dict:
             "flagged_vendors": [],
             "error_message": f"Hash lookup failed with HTTP status {response.status_code}",
         }
-        return summary
 
 
 def upload_file_to_virustotal(file_path: str) -> dict:
     file_size_mb = os.path.getsize(file_path) / 1024 / 1024
-    print(f"{file_size_mb:.2f} MB")
+    print(f"[VT File Client] Uploading ({file_size_mb:.2f} MB)...")
 
     if file_size_mb <= 32:
         with open(file_path, "rb") as file_to_upload:
@@ -124,11 +122,11 @@ def upload_file_to_virustotal(file_path: str) -> dict:
             if response.status_code == 200:
                 data = response.json()
                 analysis_id = data["data"]["id"]
-                print(f"Analysis ID: {analysis_id}")
+                print(f"[VT File Client] Analysis ID: {analysis_id}")
                 time.sleep(30)
                 return check_analysis_report(analysis_id, file_path)
             else:
-                summary = {
+                return {
                     "status": "error",
                     "verdict": "ERROR",
                     "sha256": get_file_sha256(file_path),
@@ -140,7 +138,6 @@ def upload_file_to_virustotal(file_path: str) -> dict:
                     "flagged_vendors": [],
                     "error_message": f"Upload failed with HTTP status {response.status_code}",
                 }
-                return summary
     else:
         url = VT_API_URL + "files/upload_url"
         response = safe_vt_request("GET", url, headers=headers)
@@ -154,11 +151,11 @@ def upload_file_to_virustotal(file_path: str) -> dict:
                 if response.status_code == 200:
                     data = response.json()
                     analysis_id = data["data"]["id"]
-                    print(f"Analysis ID: {analysis_id}")
+                    print(f"[VT File Client] Analysis ID: {analysis_id}")
                     time.sleep(30)
                     return check_analysis_report(analysis_id, file_path)
                 else:
-                    summary = {
+                    return {
                         "status": "error",
                         "verdict": "ERROR",
                         "sha256": get_file_sha256(file_path),
@@ -170,9 +167,8 @@ def upload_file_to_virustotal(file_path: str) -> dict:
                         "flagged_vendors": [],
                         "error_message": f"Large file upload failed with HTTP status {response.status_code}",
                     }
-                    return summary
         else:
-            summary = {
+            return {
                 "status": "error",
                 "verdict": "ERROR",
                 "sha256": get_file_sha256(file_path),
@@ -184,7 +180,6 @@ def upload_file_to_virustotal(file_path: str) -> dict:
                 "flagged_vendors": [],
                 "error_message": f"Failed to get upload URL with HTTP status {response.status_code}",
             }
-            return summary
 
 
 def _analysis_summary(response, file_path: str) -> dict:
@@ -193,6 +188,7 @@ def _analysis_summary(response, file_path: str) -> dict:
     stats = attributes.get("stats", {})
     malicious = stats.get("malicious", 0)
     suspicious = stats.get("suspicious", 0)
+
     if malicious > 0:
         verdict = "MALICIOUS"
     elif suspicious > 0:
@@ -205,6 +201,7 @@ def _analysis_summary(response, file_path: str) -> dict:
         for vendor, details in attributes.get("results", {}).items()
         if details.get("category") in ("malicious", "suspicious")
     ]
+
     return {
         "status": "success",
         "verdict": verdict,
@@ -243,28 +240,26 @@ def check_analysis_report(analysis_id: str, file_path: str) -> dict:
         response = safe_vt_request("GET", url, headers=headers)
 
         if response.status_code != 200:
-            summary = _analysis_error(
+            return _analysis_error(
                 file_path,
                 f"Failed to retrieve analysis status with HTTP status {response.status_code}",
             )
-            return summary
 
         analysis_data = response.json()
         status = analysis_data["data"]["attributes"]["status"]
 
         if status == "completed":
-            print(f"Analysis completed on attempt {attempt}")
-            summary = _analysis_summary(response, file_path)
-            return summary
+            print(f"[VT File Client] Analysis completed on attempt {attempt}")
+            return _analysis_summary(response, file_path)
 
         print(
-            f"[Attempt {attempt}/{max_tries}] Analysis status: '{status}'. Checking again in {delay}s..."
+            f"[VT File Client] [Attempt {attempt}/{max_tries}] Status: '{status}'. Retrying in {delay}s..."
         )
 
         time.sleep(delay)
         delay = min(delay * 2, 120)
 
-    summary = {
+    return {
         "status": "timeout",
         "verdict": "TIMEOUT",
         "sha256": get_file_sha256(file_path),
@@ -276,4 +271,3 @@ def check_analysis_report(analysis_id: str, file_path: str) -> dict:
         "flagged_vendors": [],
         "error_message": f"Analysis timed out after {max_tries} attempts",
     }
-    return summary

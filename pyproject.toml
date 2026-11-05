@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vt-sentinel"
+version = "1.0.0"
+description = "A modular, thread-safe Python security agent using the VirusTotal v3 API."
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "requests",
+    "watchdog",
+    "plyer",
+    "python-dotenv"
+]
+authors = [
+    {name = "Ayan Mondal", email = "ayanmondal1805@gmail.com"}
+]
+
+[project.scripts]
+vt-sentinel = "main:main"
+
+[tool.setuptools]
+py-modules = [
+    "config",
+    "logger",
+    "main",
+    "queue_manager",
+    "vt_file_client",
+    "vt_url_client"
+]

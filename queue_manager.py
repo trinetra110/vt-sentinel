@@ -1,17 +1,20 @@
+import os
 import queue
+import shutil
 import threading
 import time
-import os
-import shutil
 from plyer import notification
+from config import load_env
+from logger import log_scan_summary
 from vt_file_client import check_file_by_hash
 from vt_url_client import check_url
-from logger import log_scan_summary
 
-FOLDER_PATH = os.getenv("FOLDER_PATH", ".")
-CLEAN_DIR = os.getenv("CLEAN_FOLDER_PATH", os.path.join(FOLDER_PATH, "Clean"))
+load_env()
+
+FOLDER_PATH = os.getenv("FOLDER_PATH", os.getcwd())
+CLEAN_DIR = os.getenv("CLEAN_FOLDER_PATH", os.path.join(FOLDER_PATH, "clean"))
 QUARANTINE_DIR = os.getenv(
-    "QUARANTINE_FOLDER_PATH", os.path.join(FOLDER_PATH, "Quarantined")
+    "QUARANTINE_FOLDER_PATH", os.path.join(FOLDER_PATH, "quarantine")
 )
 
 os.makedirs(CLEAN_DIR, exist_ok=True)
@@ -62,7 +65,7 @@ def _route_file(file_path: str, verdict: str) -> None:
 
     try:
         shutil.move(file_path, dest_path)
-        print(f"[Router] Moved {filename} -> {dest_dir}")
+        print(f"[Router] Moved {filename} -> {os.path.basename(dest_dir)}/")
     except Exception as e:
         print(f"[Router] Failed to move {filename}: {e}")
 
