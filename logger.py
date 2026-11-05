@@ -1,6 +1,10 @@
 import logging
+import os
+from pathlib import Path
 
-LOG_FILE = "scan_history.log"
+CONFIG_DIR = Path.home() / "VT-SENTINEL"
+os.makedirs(CONFIG_DIR, exist_ok=True)
+LOG_FILE = CONFIG_DIR / "scan_history.log"
 
 
 def setup_logger() -> logging.Logger:

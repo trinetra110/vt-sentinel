@@ -1,21 +1,13 @@
+import os
 import queue
+import shutil
 import threading
 import time
-import os
-import shutil
 from plyer import notification
+from config import load_env
+from logger import log_scan_summary
 from vt_file_client import check_file_by_hash
 from vt_url_client import check_url
-from logger import log_scan_summary
-
-FOLDER_PATH = os.getenv("FOLDER_PATH", ".")
-CLEAN_DIR = os.getenv("CLEAN_FOLDER_PATH", os.path.join(FOLDER_PATH, "Clean"))
-QUARANTINE_DIR = os.getenv(
-    "QUARANTINE_FOLDER_PATH", os.path.join(FOLDER_PATH, "Quarantined")
-)
-
-os.makedirs(CLEAN_DIR, exist_ok=True)
-os.makedirs(QUARANTINE_DIR, exist_ok=True)
 
 task_queue = queue.Queue()
 _worker_started = False
@@ -46,10 +38,18 @@ def _is_file_stable(
 
 
 def _route_file(file_path: str, verdict: str) -> None:
+    load_env()
+    folder = os.getenv("FOLDER_PATH", os.getcwd())
+    clean_dir = os.getenv("CLEAN_FOLDER_PATH", os.path.join(folder, "clean"))
+    quarantine_dir = os.getenv("QUARANTINE_FOLDER_PATH", os.path.join(folder, "quarantine"))
+
+    os.makedirs(clean_dir, exist_ok=True)
+    os.makedirs(quarantine_dir, exist_ok=True)
+
     if verdict == "CLEAN":
-        dest_dir = CLEAN_DIR
+        dest_dir = clean_dir
     elif verdict in ["MALICIOUS", "SUSPICIOUS"]:
-        dest_dir = QUARANTINE_DIR
+        dest_dir = quarantine_dir
     else:
         return
 
@@ -62,7 +62,7 @@ def _route_file(file_path: str, verdict: str) -> None:
 
     try:
         shutil.move(file_path, dest_path)
-        print(f"[Router] Moved {filename} -> {dest_dir}")
+        print(f"[Router] Moved {filename} -> {os.path.basename(dest_dir)}/")
     except Exception as e:
         print(f"[Router] Failed to move {filename}: {e}")
 

@@ -3,22 +3,19 @@ import os
 import sys
 import time
 import requests
-from dotenv import load_dotenv
-
+from config import load_env
 from vt_file_client import safe_vt_request
 
-load_dotenv()
+load_env()
 
 VT_API_KEY = os.getenv("VT_API_KEY")
-
-if not VT_API_KEY or VT_API_KEY.strip() in [
-    "",
-    "your_api_key",
-]:
-    print(
-        "[CRITICAL] Invalid or missing VT_API_KEY in .env file. Please configure a valid key."
-    )
-    sys.exit(1)
+if not VT_API_KEY or VT_API_KEY.strip() in ["", "your_api_key"]:
+    if "--setup" not in sys.argv:
+        print(
+            "[CRITICAL] Missing VT_API_KEY. Run 'vt-sentinel --setup' or configure ~/VT-SENTINEL/.vt-sentinel.env"
+        )
+        sys.exit(1)
+    VT_API_KEY = ""
 
 VT_API_URL = "https://www.virustotal.com/api/v3/"
 headers = {"accept": "application/json", "x-apikey": VT_API_KEY}
@@ -91,9 +88,7 @@ def submit_url_for_analysis(target_url: str) -> dict:
     if response.status_code == 200:
         data = response.json()
         analysis_id = data.get("data", {}).get("id")
-        print(
-            f"[VT URL Client] Scan submitted successfully. Analysis ID: {analysis_id}"
-        )
+        print(f"[VT URL Client] Scan submitted. Analysis ID: {analysis_id}")
         time.sleep(15)
         return check_analysis_report(analysis_id, target_url)
     else:
@@ -176,7 +171,7 @@ def check_analysis_report(analysis_id: str, target_url: str) -> dict:
             return _analysis_summary(response, target_url)
 
         print(
-            f"[VT URL Client] [Attempt {attempt}/{max_tries}] Status: '{status}'. Checking again in {delay}s..."
+            f"[VT URL Client] [Attempt {attempt}/{max_tries}] Status: '{status}'. Retrying in {delay}s..."
         )
         time.sleep(delay)
         delay = min(delay * 2, 60)
