@@ -12,7 +12,7 @@ VT_API_KEY = os.getenv("VT_API_KEY")
 if not VT_API_KEY or VT_API_KEY.strip() in ["", "your_api_key"]:
     if "--setup" not in sys.argv:
         print(
-            "[CRITICAL] Missing VT_API_KEY. Run 'vt-sentinel --setup' or configure ~/.vt-sentinel.env"
+            "[CRITICAL] Missing VT_API_KEY. Run 'vt-sentinel --setup' or configure ~/VT-SENTINEL/.vt-sentinel.env"
         )
         sys.exit(1)
     VT_API_KEY = ""

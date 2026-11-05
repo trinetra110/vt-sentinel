@@ -50,7 +50,13 @@ jobs:
         if: runner.os == 'Windows'
         run: Rename-Item -Path "dist\${{ matrix.binary_name }}" -NewName "${{ matrix.release_name }}"
 
-      - name: Upload to Release
+      - name: Upload Binaries as Workflow Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.release_name }}-artifact
+          path: dist/${{ matrix.release_name }}
+
+      - name: Upload to GitHub Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:

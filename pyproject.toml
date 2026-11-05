@@ -7,7 +7,7 @@ name = "vt-sentinel"
 version = "1.0.0"
 description = "A modular, thread-safe Python security agent using the VirusTotal v3 API."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.11"
 dependencies = [
     "requests",
     "watchdog",

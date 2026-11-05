@@ -5,24 +5,36 @@ import time
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
-from config import run_setup
+from config import run_setup, load_env
 from queue_manager import (
-    CLEAN_DIR,
-    FOLDER_PATH,
-    QUARANTINE_DIR,
     add_file_to_queue,
     add_url_to_queue,
     wait_for_completion,
 )
 
 IGNORED_EXTS = {".tmp", ".crdownload", ".part"}
-IGNORED_DIRS = {os.path.abspath(CLEAN_DIR), os.path.abspath(QUARANTINE_DIR)}
+
+
+def get_ignored_dirs():
+    load_env()
+    clean_folder = os.getenv(
+        "CLEAN_FOLDER_PATH",
+        os.path.join(os.getenv("FOLDER_PATH", os.getcwd()), "clean"),
+    )
+    quarantine_folder = os.getenv(
+        "QUARANTINE_FOLDER_PATH",
+        os.path.join(os.getenv("FOLDER_PATH", os.getcwd()), "quarantine"),
+    )
+    return {
+        os.path.abspath(clean_folder),
+        os.path.abspath(quarantine_folder),
+    }
 
 
 def is_valid_target(file_path: str) -> bool:
     abs_path = os.path.abspath(file_path)
 
-    for ignored_dir in IGNORED_DIRS:
+    for ignored_dir in get_ignored_dirs():
         if abs_path.startswith(ignored_dir):
             return False
 
@@ -52,9 +64,12 @@ class DownloadMonitorHandler(FileSystemEventHandler):
 
 
 def run_file_sweep():
-    print(f"[INFO] Scanning existing unprocessed files in {FOLDER_PATH}...")
-    if os.path.exists(FOLDER_PATH):
-        for entry in os.scandir(FOLDER_PATH):
+    load_env()
+    folder_path = os.getenv("FOLDER_PATH", os.getcwd())
+
+    print(f"[INFO] Scanning existing unprocessed files in {folder_path}...")
+    if os.path.exists(folder_path):
+        for entry in os.scandir(folder_path):
             if entry.is_file() and is_valid_target(entry.path):
                 add_file_to_queue(entry.path)
 
@@ -63,10 +78,13 @@ def run_file_sweep():
 
 
 def run_file_watchdog():
-    print(f"[INFO] Monitoring {FOLDER_PATH} for new files in real-time...")
+    load_env()
+    folder_path = os.getenv("FOLDER_PATH", os.getcwd())
+
+    print(f"[INFO] Monitoring {folder_path} for new files in real-time...")
     event_handler = DownloadMonitorHandler()
     observer = Observer()
-    observer.schedule(event_handler, FOLDER_PATH, recursive=False)
+    observer.schedule(event_handler, folder_path, recursive=False)
 
     observer.start()
     try:
@@ -149,12 +167,19 @@ def main():
     args = parser.parse_args()
 
     if args.setup:
-        run_setup()
+        success = run_setup()
+        if not success:
+            sys.exit(1)
         sys.exit(0)
 
+    load_env()
+    folder_path = os.getenv("FOLDER_PATH", os.getcwd())
+
     if args.target == "file":
-        if not FOLDER_PATH or not os.path.exists(FOLDER_PATH):
-            print(f"[ERROR] Target folder path does not exist: {FOLDER_PATH}")
+        if not folder_path or not os.path.exists(folder_path):
+            print(
+                f"[ERROR] Target folder path does not exist: {folder_path}. Run with --setup first."
+            )
             sys.exit(1)
 
         if args.mode == "sweep":

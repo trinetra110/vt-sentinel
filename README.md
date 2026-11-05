@@ -16,7 +16,7 @@ A modular, thread-safe Python security agent utilizing the VirusTotal v3 API. Th
 ## Prerequisites
 
 * VirusTotal API Key (Free tier)
-* *Optional:* Python 3.7+ and `pipx` (only required if not using the standalone binary)
+* *Optional:* Python 3.11+ and `pipx` (only required if not using the standalone binary)
 
 ## Installation
 
@@ -113,7 +113,7 @@ vt-sentinel --target url --file "urls.txt"
 
 ```text
 ~/VT-SENTINEL/            # Global User Directory (Auto-generated)
-├── .vt-sentinel.env      # Encrypted environment variables
+├── .vt-sentinel.env      # Plain-text environment variables (API key and paths)
 └── scan_history.log      # Centralized audit logs
 
 vt-sentinel/              # Source Code

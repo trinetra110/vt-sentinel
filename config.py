@@ -44,6 +44,12 @@ def run_setup():
     )
 
     CONFIG_PATH.write_text(env_content, encoding="utf-8")
+
+    try:
+        os.chmod(CONFIG_PATH, 0o600)
+    except Exception:
+        pass
+
     os.makedirs(clean_folder, exist_ok=True)
     os.makedirs(quarantine_folder, exist_ok=True)
 

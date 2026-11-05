@@ -9,17 +9,6 @@ from logger import log_scan_summary
 from vt_file_client import check_file_by_hash
 from vt_url_client import check_url
 
-load_env()
-
-FOLDER_PATH = os.getenv("FOLDER_PATH", os.getcwd())
-CLEAN_DIR = os.getenv("CLEAN_FOLDER_PATH", os.path.join(FOLDER_PATH, "clean"))
-QUARANTINE_DIR = os.getenv(
-    "QUARANTINE_FOLDER_PATH", os.path.join(FOLDER_PATH, "quarantine")
-)
-
-os.makedirs(CLEAN_DIR, exist_ok=True)
-os.makedirs(QUARANTINE_DIR, exist_ok=True)
-
 task_queue = queue.Queue()
 _worker_started = False
 _worker_lock = threading.Lock()
@@ -49,10 +38,17 @@ def _is_file_stable(
 
 
 def _route_file(file_path: str, verdict: str) -> None:
+    config = load_env()
+    clean_dir = config["CLEAN_FOLDER"]
+    quarantine_dir = config["QUARANTINE_FOLDER"]
+
+    os.makedirs(clean_dir, exist_ok=True)
+    os.makedirs(quarantine_dir, exist_ok=True)
+
     if verdict == "CLEAN":
-        dest_dir = CLEAN_DIR
+        dest_dir = clean_dir
     elif verdict in ["MALICIOUS", "SUSPICIOUS"]:
-        dest_dir = QUARANTINE_DIR
+        dest_dir = quarantine_dir
     else:
         return
 
