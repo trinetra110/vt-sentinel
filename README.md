@@ -57,10 +57,10 @@ chmod +x vt-sentinel-macos
 
 ### Option 2: Install globally via pipx (Recommended for Python users)
 
-This installs `vt-sentinel` into an isolated virtual environment and adds it to your global system path.
+This installs `vt-sentinel` (directly from PyPI) into an isolated virtual environment and adds it to your global system path.
 
 ```bash
-pipx install git+https://github.com/trinetra110/vt-sentinel.git
+pipx install vt-sentinel
 ```
 
 ### Option 3: Install from Source (For Developers)
